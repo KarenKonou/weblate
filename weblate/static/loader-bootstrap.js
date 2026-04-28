@@ -530,7 +530,7 @@ function initHighlight(root) {
       );
       const newlineRegex = /\n/;
       const nonBreakingSpaceRegex = /\u00A0/;
-      const extension = {
+      const prepend = {
         hlspace: {
           pattern: whitespaceRegex,
           lookbehind: true,
@@ -543,19 +543,28 @@ function initHighlight(root) {
         },
       };
       if (placeables) {
-        extension.placeable = new RegExp(placeables);
+        prepend.placeable = new RegExp(placeables);
       }
       /*
-       * We can not use Prism.extend here as we want whitespace highlighting
-       * to apply first. The code is borrowed from Prism.util.clone.
+       * Clone the whole language in a single Prism.util.clone() call so that
+       * internal self-references are preserved.
        */
-      for (const key in languageMode) {
-        // biome-ignore lint/suspicious/noPrototypeBuiltins: Firefox < 92 compatibility, Object.hasOwn(languageMode, key) should be used instead
-        if (languageMode.hasOwnProperty(key)) {
-          extension[key] = Prism.util.clone(languageMode[key]);
+      const cloned = languageMode ? Prism.util.clone(languageMode) : {};
+      const original = {};
+      for (const key in cloned) {
+        // biome-ignore lint/suspicious/noPrototypeBuiltins: Firefox < 92 compatibility, Object.hasOwn(cloned, key) should be used instead
+        if (cloned.hasOwnProperty(key)) {
+          original[key] = cloned[key];
+          delete cloned[key];
         }
       }
-      languageMode = extension;
+      for (const key in prepend) {
+        cloned[key] = prepend[key];
+      }
+      for (const key in original) {
+        cloned[key] = original[key];
+      }
+      languageMode = cloned;
     }
     const syncContent = () => {
       highlight.innerHTML = Prism.highlight(editor.value, languageMode, mode);
