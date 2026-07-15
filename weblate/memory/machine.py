@@ -49,6 +49,7 @@ class WeblateMemory(InternalMachineTranslation):
             "service": self.name,
             "origin": result.get_origin_display(project=project, user=user),
             "source": result.source,
+            "context": result.context,
             "show_quality": True,
             "delete_url": reverse("api:memory-detail", kwargs={"pk": result.id})
             if user is not None and user.has_perm("memory.delete", result)

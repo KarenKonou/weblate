@@ -588,6 +588,9 @@ class MemoryModelTest(FixtureTestCase):
             machine_translation, unit, "Hello, world!\n", origin="File"
         )
         self.assertEqual(suggestion["quality"], 95)
+        # The match exposes its context so translators can tell why an
+        # otherwise identical string is not scored at 100 %
+        self.assertEqual(suggestion["context"], "Unit Context")
 
     def test_import_map(self) -> None:
         call_command(

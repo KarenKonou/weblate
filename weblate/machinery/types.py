@@ -66,6 +66,7 @@ class TranslationResultDict(TypedDict):
     service: str
     source: str
     original_source: NotRequired[str]
+    context: NotRequired[str]
     show_quality: NotRequired[bool]
     origin: NotRequired[str | None]
     origin_url: NotRequired[str | None]

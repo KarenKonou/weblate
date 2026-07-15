@@ -796,6 +796,16 @@
       const sourceDiff = document.createElement("td");
       sourceDiff.className = "machinery-text";
       sourceDiff.innerHTML = el.source_diff;
+      if (el.context) {
+        const context = document.createElement("div");
+        context.className = "text-muted machinery-context";
+        /* Translators: Label for the context of a translation memory match */
+        context.append(`${gettext("Context:")} `);
+        const contextValue = document.createElement("span");
+        contextValue.textContent = el.context;
+        context.append(contextValue);
+        sourceDiff.append(context);
+      }
       row.append(sourceDiff);
 
       row.append(service);

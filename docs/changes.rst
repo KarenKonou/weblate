@@ -16,6 +16,7 @@ Weblate 2026.8
 * Expanded :ref:`change-actions` documentation with detailed event semantics and improved OpenAPI schema accuracy.
 * Improved matrix view loading performance when displaying multiple languages.
 * Translation memory management pages now load origin summaries with a single database aggregation.
+* :ref:`Automatic suggestions <machine-translation>` now display the context of translation memory matches, clarifying why a string with a differing context is not scored at 100%.
 * Dashboard component list tabs now load without processing unrelated component lists.
 * Static assets now use content-hashed filenames, and CAPTCHA JavaScript is loaded only when needed.
 * Improved :ref:`screenshots` OCR reliability and error reporting when downloading recognition data.
