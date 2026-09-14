@@ -894,6 +894,7 @@ class ProfileSerializer(serializers.ModelSerializer[Profile]):
             "theme",
             "hide_completed",
             "secondary_in_zen",
+            "suggestions_in_zen",
             "hide_source_secondary",
             "wide_tables",
             "listing_columns",

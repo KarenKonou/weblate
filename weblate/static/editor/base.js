@@ -114,6 +114,24 @@ WLT.Utils = (() => ({
     editorArea.classList.add("has-changes");
   },
   /**
+   * Copy a suggestion into the translation editors (plural-aware).
+   * @param {HTMLElement} button - The clone button carrying data-text-N attributes
+   * @param {NodeList|HTMLElement[]} editors - The translation editors to fill
+   * @returns {void}
+   */
+  copySuggestion: (button, editors) => {
+    editors.forEach((el, i) => {
+      const text = button.getAttribute(`data-text-${i}`);
+
+      // Prevent overwriting with empty/undefined data
+      if (text !== null && text !== "") {
+        replaceValue(el, text);
+      }
+    });
+
+    editors[0]?.focus();
+  },
+  /**
    * Check if the translation has any changes
    * @param {Event} [e] - The event object (optional)
    * @returns {boolean}
@@ -303,10 +321,11 @@ WLT.Editor = (() => {
       }
     });
 
-    // Remove unsaved changes warning when submitting
+    // Remove unsaved changes warning when submitting the translation;
+    // the search and the Zen suggestions forms leave the editor as is
     for (const editor of this.editors) {
       editor.addEventListener("submit", (event) => {
-        if (event.target.matches(".result-page-form")) {
+        if (event.target.matches(".result-page-form, .zen-suggestions-form")) {
           return;
         }
         for (const el of document.querySelectorAll(

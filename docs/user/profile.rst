@@ -132,6 +132,18 @@ are shown in the listings. This way you can hide numbers you are not
 interested in, or make room for additional ones such as :guilabel:`Total
 strings`.
 
+Zen mode
+++++++++
+
+:guilabel:`Show secondary translations in the Zen mode` and
+:guilabel:`Show suggestions in the Zen mode` control what is shown alongside
+each string in the :ref:`zen-mode`. Suggestions can be accepted, rejected, or
+voted on directly there when shown.
+
+.. versionadded:: 2026.10
+
+    Suggestions can be shown in the Zen mode.
+
 Default dashboard view
 ++++++++++++++++++++++
 

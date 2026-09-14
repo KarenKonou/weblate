@@ -614,4 +614,15 @@ You can also choose there between having translations listed
 :guilabel:`Top to bottom` or :guilabel:`Side by side`,
 depending on your personal preference.
 
+Pending :ref:`suggestions` are listed below each string, so you can accept,
+reject, or vote on them while scrolling through the translations. The string
+is updated in place, without leaving the Zen editor. Combine this with the
+:guilabel:`Strings with suggestions` filter to review suggestions in bulk.
+Turn off :guilabel:`Show suggestions in the Zen mode` in the
+:ref:`profile-preferences` to hide them again.
+
+.. versionadded:: 2026.10
+
+    Suggestions are now shown in the Zen mode.
+
 .. image:: /screenshots/zen-mode.webp

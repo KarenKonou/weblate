@@ -2021,6 +2021,7 @@ class UserAPITest(APIBaseTest):
                     "nearby_strings": 5,
                     "special_chars": "\xa0",
                     "wide_tables": True,
+                    "suggestions_in_zen": False,
                     "listing_columns": ["total", "untranslated", "checks"],
                 }
             },
@@ -2030,6 +2031,7 @@ class UserAPITest(APIBaseTest):
         self.assertEqual(self.user.profile.location, "Prague")
         self.assertEqual(self.user.profile.nearby_strings, 5)
         self.assertTrue(self.user.profile.wide_tables)
+        self.assertFalse(self.user.profile.suggestions_in_zen)
         self.assertEqual(
             self.user.profile.listing_columns, ["total", "untranslated", "checks"]
         )

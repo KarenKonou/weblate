@@ -400,6 +400,7 @@ Users
                 "theme": "auto",
                 "hide_completed": false,
                 "secondary_in_zen": true,
+                "suggestions_in_zen": true,
                 "hide_source_secondary": false,
                 "wide_tables": false,
                 "listing_columns": ["untranslated", "untranslated_words", "untranslated_chars", "nottranslated", "checks", "suggestions", "comments"],

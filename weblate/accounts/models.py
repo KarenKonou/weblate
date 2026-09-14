@@ -886,6 +886,10 @@ class Profile(models.Model):
         verbose_name=gettext_lazy("Show secondary translations in the Zen mode"),
         default=True,
     )
+    suggestions_in_zen = models.BooleanField(
+        verbose_name=gettext_lazy("Show suggestions in the Zen mode"),
+        default=True,
+    )
     hide_source_secondary = models.BooleanField(
         verbose_name=gettext_lazy("Hide source if a secondary translation exists"),
         default=False,

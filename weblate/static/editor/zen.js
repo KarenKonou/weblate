@@ -231,7 +231,8 @@
     }
     const checksum = row.querySelector("[name=checksum]")?.value;
     const statusdiv = document.getElementById(`status-${checksum}`);
-    const form = row.querySelector("form");
+    // The suggestions row carries its own form, only submit the translation
+    const form = row.querySelector(".translator form");
     if (!form || !statusdiv) {
       return;
     }
@@ -310,6 +311,225 @@
         row._saveTimer = undefined;
       });
   }
+
+  /* Suggestions */
+
+  const ACCEPT_MODES = new Set(["accept", "accept_edit", "accept_approve"]);
+
+  const getUnitEditors = (unit) =>
+    unit.querySelectorAll(".translator .translation-editor");
+
+  const unitHasChanges = (unit) =>
+    unit.querySelector(".translator .translation-editor.has-changes") !== null;
+
+  /* Clone suggestion into the editor of the same unit */
+  delegate(
+    document,
+    "click",
+    ".zen-suggestions .js-copy-suggestion",
+    function (e) {
+      e.preventDefault();
+      const unit = this.closest(".zen-unit");
+      const editors = unit ? getUnitEditors(unit) : [];
+      if (editors.length) {
+        WLT.Utils.copySuggestion(this, editors);
+      }
+    },
+  );
+
+  delegate(document, "submit", ".zen-suggestions-form", function (e) {
+    e.preventDefault();
+    handleSuggestionAction(this, e.submitter);
+  });
+
+  function handleSuggestionAction(form, button) {
+    if (!button?.name) {
+      return;
+    }
+    const mode = button.name;
+    const unit = form.closest(".zen-unit");
+    const checksum = form.querySelector("[name=checksum]")?.value;
+    const statusdiv = document.getElementById(`status-${checksum}`);
+    if (!unit || !statusdiv) {
+      return;
+    }
+
+    // Guard: wait for a running save to finish
+    if (statusdiv.classList.contains("unit-state-saving")) {
+      setTimeout(() => {
+        handleSuggestionAction(form, button); // Reinvoke
+      }, 100);
+      return;
+    }
+
+    // Guard: accepting overwrites the editor, do not lose pending edits
+    if (ACCEPT_MODES.has(mode) && unitHasChanges(unit)) {
+      addAlert(
+        gettext("Save or discard your changes before accepting a suggestion."),
+        "warning",
+      );
+      return;
+    }
+
+    // Build the payload by hand: there is one rejection input per
+    // suggestion, only the one next to the clicked button is relevant.
+    const payload = new URLSearchParams();
+    payload.append(
+      "csrfmiddlewaretoken",
+      form.querySelector("[name=csrfmiddlewaretoken]")?.value ?? "",
+    );
+    payload.append(
+      "unit_id",
+      form.querySelector("[name=unit_id]")?.value ?? "",
+    );
+    payload.append("checksum", checksum);
+    payload.append(mode, button.value);
+    if (mode === "delete" || mode === "spam") {
+      const rejection = button
+        .closest(".history-row")
+        ?.querySelector("input[name=rejection]");
+      payload.append("rejection", rejection?.value ?? "");
+    }
+
+    statusdiv.classList.add("unit-state-saving");
+
+    fetch(form.getAttribute("action"), {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Requested-With": "XMLHttpRequest",
+        Accept: "application/json",
+      },
+      body: payload.toString(),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        applyZenUnitData(unit, data);
+      })
+      .catch((err) => {
+        addAlert(err.message);
+      })
+      .finally(() => {
+        statusdiv.classList.remove("unit-state-saving");
+      });
+  }
+
+  /* Resync a Zen row from the JSON payload of the zen unit endpoints */
+  function applyZenUnitData(unit, data) {
+    for (const val of data.messages) {
+      addAlert(val.text, val.kind);
+    }
+
+    const checksum = data.checksum;
+
+    // Suggestions block
+    const container = document.getElementById(`suggestions-${checksum}`);
+    if (data.has_suggestions) {
+      if (container) {
+        container.innerHTML = data.suggestions_html;
+        initHighlight(container);
+      }
+    } else {
+      document.getElementById(`row-suggestions-${checksum}`)?.remove();
+    }
+
+    // State cell
+    const statusdiv = document.getElementById(`status-${checksum}`);
+    if (statusdiv) {
+      statusdiv.setAttribute(
+        "class",
+        `unit-state-cell ${data.unit_state_class}`,
+      );
+      statusdiv.setAttribute("title", data.unit_state_title);
+    }
+
+    // Editor content, only when the target has changed
+    if (data.target === null) {
+      return;
+    }
+    const form = unit.querySelector(".translator form");
+    const editors = getUnitEditors(unit);
+    editors.forEach((el, i) => {
+      if (i < data.target.length) {
+        replaceValue(el, data.target[i]);
+      }
+    });
+    if (form) {
+      // Set checked directly, click() would trigger a redundant save
+      const review = form.querySelector(
+        `input[name=review][value="${data.review}"]`,
+      );
+      if (review) {
+        review.checked = true;
+      }
+      const fuzzy = form.querySelector("input[name=fuzzy]");
+      if (fuzzy) {
+        fuzzy.checked = data.fuzzy;
+      }
+      const sum = form.querySelector("input[name=translationsum]");
+      if (sum) {
+        sum.value = data.translationsum;
+      }
+    }
+    // The content is saved already, undo the change markers replaceValue caused
+    for (const el of editors) {
+      el.classList.remove("has-changes");
+    }
+    unit.querySelector("#unsaved-label")?.remove();
+    form?.closest("tr")?.classList.remove("translation-modified");
+    if (form && statusdiv) {
+      statusdiv._lastPayload = new URLSearchParams(
+        new FormData(form),
+      ).toString();
+    }
+    if (data.mode === "accept_edit") {
+      editors[0]?.focus();
+    }
+  }
+
+  /* Refresh all rows showing suggestions, used after bulk accepting */
+  function refreshZenSuggestions() {
+    for (const form of document.querySelectorAll(".zen-suggestions-form")) {
+      const unit = form.closest(".zen-unit");
+      const url = form.dataset.unitUrl;
+      if (!unit || !url || unitHasChanges(unit)) {
+        continue;
+      }
+      const params = new URLSearchParams({
+        checksum: form.querySelector("[name=checksum]")?.value ?? "",
+        unit_id: form.querySelector("[name=unit_id]")?.value ?? "",
+      });
+      fetch(`${url}?${params}`, {
+        credentials: "same-origin",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          Accept: "application/json",
+        },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          applyZenUnitData(unit, data);
+        })
+        .catch((err) => {
+          addAlert(err.message);
+        });
+    }
+  }
+
+  document.addEventListener("weblate:suggestions-changed", () => {
+    refreshZenSuggestions();
+  });
 
   document.addEventListener("DOMContentLoaded", () => {
     new ZenEditor();

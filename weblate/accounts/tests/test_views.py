@@ -830,6 +830,7 @@ class ProfileTest(FixtureTestCase):
                 "nearby_strings": 10,
                 "theme": "auto",
                 "wide_tables": "on",
+                "suggestions_in_zen": "on",
                 "listing_columns": ["total", "untranslated", "checks"],
                 "notifications__0-scope": 0,
                 "notifications__0-project": "",
@@ -845,6 +846,7 @@ class ProfileTest(FixtureTestCase):
         self.assertRedirects(response, reverse("profile"))
         self.user.profile.refresh_from_db()
         self.assertTrue(self.user.profile.wide_tables)
+        self.assertTrue(self.user.profile.suggestions_in_zen)
         self.assertEqual(
             self.user.profile.listing_columns, ["total", "untranslated", "checks"]
         )

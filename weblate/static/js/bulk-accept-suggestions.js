@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 document.addEventListener("DOMContentLoaded", () => {
-  const buttons = document.querySelectorAll(".aa-accept-all-btn");
   const confirmDialog = createConfirmDialog();
+  // In Zen mode the rows are refreshed in place instead of reloading the page
+  const isZen = document.querySelector("table.zen") !== null;
 
   const srStatus = document.createElement("div");
   srStatus.className = "visually-hidden";
@@ -13,76 +14,126 @@ document.addEventListener("DOMContentLoaded", () => {
   srStatus.setAttribute("aria-atomic", "true");
   document.body.appendChild(srStatus);
 
-  buttons.forEach((btn) => {
-    btn.addEventListener("click", async function (e) {
-      e.preventDefault();
+  // Delegated, so that buttons loaded later (Zen infinite scroll) work too
+  delegate(document, "click", ".aa-accept-all-btn", async function (e) {
+    e.preventDefault();
+    const username = this.dataset.username;
+    const url = this.dataset.translationUrl;
+    const csrfToken = getCsrfToken();
 
-      const username = this.dataset.username;
-      const url = this.dataset.translationUrl;
-      const csrfToken = getCsrfToken();
+    this.classList.remove("aa-error");
 
-      btn.classList.remove("aa-error");
+    if (!csrfToken) {
+      showError(
+        this,
+        gettext("Security token missing. Please reload the page."),
+      );
+      return;
+    }
 
-      if (!csrfToken) {
-        showError(
-          btn,
-          gettext("Security token missing. Please reload the page."),
-        );
+    const allBtns = document.querySelectorAll(".aa-accept-all-btn");
+    disableAllButtons(allBtns);
+    srStatus.textContent = interpolate(
+      gettext("Loading suggestion count for %s"),
+      [username],
+    );
+
+    try {
+      const preview = await postBulkAccept(url, csrfToken, {
+        username: username,
+        preview: "1",
+      });
+
+      const confirmed = await confirmBulkAccept(
+        confirmDialog,
+        username,
+        preview.total,
+        preview.can_approve,
+        this.dataset.translationName,
+      );
+      if (!confirmed) {
+        enableAllButtons(allBtns);
+        srStatus.textContent = gettext("Bulk accept cancelled.");
         return;
       }
 
-      const allBtns = document.querySelectorAll(".aa-accept-all-btn");
-      disableAllButtons(allBtns);
       srStatus.textContent = interpolate(
-        gettext("Loading suggestion count for %s"),
+        gettext("Scheduling bulk accept for %s"),
         [username],
       );
 
-      try {
-        const preview = await postBulkAccept(url, csrfToken, {
-          username: username,
-          preview: "1",
-        });
+      const data = await postBulkAccept(url, csrfToken, {
+        username: username,
+        confirmed: "1",
+        // The return URL makes the task poller leave the page, Zen stays put
+        ...(isZen
+          ? {}
+          : {
+              return_url: `${window.location.pathname}${window.location.search}${window.location.hash}`,
+            }),
+        ...(confirmed === "approve" ? { approve: "1" } : {}),
+      });
 
-        const confirmed = await confirmBulkAccept(
-          confirmDialog,
-          username,
-          preview.total,
-          preview.can_approve,
-          this.dataset.translationName,
-        );
-        if (!confirmed) {
-          enableAllButtons(allBtns);
-          srStatus.textContent = gettext("Bulk accept cancelled.");
-          return;
-        }
-
-        srStatus.textContent = interpolate(
-          gettext("Scheduling bulk accept for %s"),
-          [username],
-        );
-
-        const data = await postBulkAccept(url, csrfToken, {
-          username: username,
-          confirmed: "1",
-          return_url: `${window.location.pathname}${window.location.search}${window.location.hash}`,
-          ...(confirmed === "approve" ? { approve: "1" } : {}),
-        });
-
-        if (data.success) {
-          srStatus.textContent = data.message;
-          setTimeout(() => location.reload(), data.completed ? 1500 : 100);
-        } else {
-          showError(btn, data.error || gettext("Unknown error"));
-          enableAllButtons(allBtns);
-        }
-      } catch (err) {
-        console.error("Bulk accept error:", err);
-        showError(btn, err.message || gettext("Network error"));
+      if (!data.success) {
+        showError(this, data.error || gettext("Unknown error"));
         enableAllButtons(allBtns);
+        return;
       }
-    });
+
+      srStatus.textContent = data.message;
+      if (!isZen) {
+        setTimeout(() => location.reload(), data.completed ? 1500 : 100);
+        return;
+      }
+
+      if (!data.completed) {
+        const result = await waitForTask(data.task_url);
+        if (result?.message) {
+          srStatus.textContent = result.message;
+        }
+      }
+      addAlert(srStatus.textContent, "success");
+      document.dispatchEvent(new CustomEvent("weblate:suggestions-changed"));
+      enableAllButtons(document.querySelectorAll(".aa-accept-all-btn"));
+    } catch (err) {
+      console.error("Bulk accept error:", err);
+      showError(this, err.message || gettext("Network error"));
+      enableAllButtons(allBtns);
+    }
   });
+
+  /* Poll a task until it completes, resolving with its result */
+  function waitForTask(taskUrl) {
+    return new Promise((resolve, reject) => {
+      const poll = async () => {
+        try {
+          const response = await fetch(taskUrl, {
+            credentials: "same-origin",
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          });
+          if (response.status === 404) {
+            resolve(null);
+            return;
+          }
+          if (response.ok) {
+            const data = await response.json();
+            if (data.completed) {
+              resolve(data.result);
+              return;
+            }
+          }
+        } catch (_error) {
+          /* Ignore transient network errors and retry on the next tick */
+        }
+        setTimeout(poll, 1000);
+      };
+      if (!taskUrl) {
+        reject(new Error(gettext("Invalid server response")));
+        return;
+      }
+      poll();
+    });
+  }
 
   function getCsrfToken() {
     const csrfTokenElement = document.querySelector(

@@ -334,6 +334,7 @@ class UserSettingsForm(ProfileBaseForm):
             "zen_mode",
             "nearby_strings",
             "secondary_in_zen",
+            "suggestions_in_zen",
             "hide_source_secondary",
             "wide_tables",
             "listing_columns",

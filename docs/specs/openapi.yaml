@@ -36560,6 +36560,9 @@ components:
         secondary_in_zen:
           type: boolean
           title: Show secondary translations in the Zen mode
+        suggestions_in_zen:
+          type: boolean
+          title: Show suggestions in the Zen mode
         hide_source_secondary:
           type: boolean
           title: Hide source if a secondary translation exists
@@ -36779,6 +36782,9 @@ components:
         secondary_in_zen:
           type: boolean
           title: Show secondary translations in the Zen mode
+        suggestions_in_zen:
+          type: boolean
+          title: Show suggestions in the Zen mode
         hide_source_secondary:
           type: boolean
           title: Hide source if a secondary translation exists

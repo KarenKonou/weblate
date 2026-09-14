@@ -2868,6 +2868,40 @@ table.table-simple tbody#glossary-terms .alert-info {
   border: 1px solid var(--wl-color-border-strong);
 }
 
+/* Suggestions shown inline in the Zen editor */
+.zen-suggestions {
+  position: relative;
+}
+
+.zen-suggestions-container .container-fluid {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.zen-suggestions-container .container-gapped {
+  gap: 20px;
+}
+
+.zen-suggestions-container .history-row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.zen-suggestions-container .history-data {
+  position: relative;
+  padding-top: 32px;
+}
+
+.zen-suggestions-container .btn-float {
+  top: 28px;
+  right: 0;
+}
+
+[dir="rtl"] .zen-suggestions-container .btn-float {
+  right: auto;
+  left: 0;
+}
+
 .card-header > .card-title > .badge {
   background-color: var(--bs-secondary);
 }

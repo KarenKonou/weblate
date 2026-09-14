@@ -5,7 +5,14 @@
 {% block extra_script %}
   <script defer src="{% static 'editor/base.js' %}"></script>
   <script defer src="{% static 'editor/zen.js' %}"></script>
+  {# Bulk accept suggestions feature #}
+  <script defer src="{% static 'js/bulk-accept-suggestions.js' %}"></script>
 {% endblock extra_script %}
+
+{% block extra_styles %}
+  {# Bulk accept suggestions feature #}
+  <link rel="stylesheet" href="{% static 'styles/bulk-accept.css' %}" />
+{% endblock extra_styles %}
 
 {% block breadcrumbs %}
   {% path_object_breadcrumbs path_object %}
