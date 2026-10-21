@@ -45,6 +45,7 @@ Weblate 2026.11
 * Fixed initial installation of the :ref:`AI quality evaluation add-on <addon-weblate.ai.quality>`.
 * Fixed :ref:`Sphinx POT extraction <addon-weblate.gettext.sphinx>` to respect the component's gettext line wrapping setting.
 * Fixed :ref:`legal document <legal>` links to prefer configured external URLs and kept privacy policy confirmation optional when hidden without a URL.
+* Fixed the automatic color theme briefly rendering partially light on page load and not fully following system theme changes on open pages.
 
 .. rubric:: Compatibility
 
